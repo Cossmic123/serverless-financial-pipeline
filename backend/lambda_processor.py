@@ -4,17 +4,44 @@ import os
 import requests
 import pandas as pd
 import numpy as np
+import boto3
 from datetime import datetime, date, timedelta
+from config import (
+    SECRET_NAME,
+    AWS_REGION,
+    S3_BUCKET_NAME as CONFIG_S3_BUCKET_NAME,
+    RSI_PERIOD,
+    VOLATILITY_PERIOD,
+    SMA_PERIOD,
+    VOLUME_ANOMALY_PERIOD
+)
 
-# --- Constants ---
-RSI_PERIOD = 14
-VOLATILITY_PERIOD = 30
-SMA_PERIOD = 50
-VOLUME_ANOMALY_PERIOD = 30
+# --- Secrets Manager Helper ---
+def get_secret(secret_name: str, region_name: str) -> dict:
+    """Fetch secrets from AWS Secrets Manager."""
+    try:
+        session = boto3.session.Session()
+        client = session.client(service_name='secretsmanager', region_name=region_name)
+        response = client.get_secret_value(SecretId=secret_name)
+        return json.loads(response['SecretString'])
+    except Exception as e:
+        print(f"Error fetching secret {secret_name}: {str(e)}")
+        return {}
 
-# --- Environment Variables ---
-S3_BUCKET_NAME = os.environ.get('S3_BUCKET_NAME', '')
-POLYGON_API_KEY = os.environ.get('POLYGON_API_KEY', '')
+# --- Environment Variables & Secrets ---
+# Check if running in Lambda (AWS_EXECUTION_ENV is set in Lambda)
+IS_LAMBDA = bool(os.environ.get('AWS_EXECUTION_ENV'))
+
+# Use S3 bucket from config.py
+S3_BUCKET_NAME = CONFIG_S3_BUCKET_NAME
+
+if IS_LAMBDA:
+    # Load from AWS Secrets Manager in Lambda
+    secrets = get_secret(SECRET_NAME, AWS_REGION)
+    POLYGON_API_KEY = secrets.get('POLYGON_API_KEY', '')
+else:
+    # Load from environment variables for local testing
+    POLYGON_API_KEY = os.environ.get('POLYGON_API_KEY', '')
 
 # --- KPI Calculation Functions ---
 def calculate_rsi(data: pd.DataFrame, period: int = RSI_PERIOD) -> float:

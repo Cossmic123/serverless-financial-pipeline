@@ -37,9 +37,11 @@ The project follows a decoupled, event-driven architecture that ensures scalabil
 ## **Technology Stack** 🛠️
 
 ### **Backend**
-* Python 3.9
+* Python 3.10+
+* uv (package manager)
 * Boto3 (AWS SDK for Python)
 * Pandas & NumPy (for KPI calculations)
+* python-dotenv (for local development)
 
 ### **Cloud Infrastructure (AWS)**
 * **Compute**: AWS Lambda
@@ -52,7 +54,7 @@ The project follows a decoupled, event-driven architecture that ensures scalabil
 * Vue.js
 
 ### **Data Source**
-* Alpha Vantage API
+* Polygon.io API
 
 ***
 ## **Setup and Installation** 🚀
@@ -60,9 +62,10 @@ The project follows a decoupled, event-driven architecture that ensures scalabil
 ### **Prerequisites**
 * An AWS Account
 * Git installed
-* Python 3.9+ and pip installed
+* Python 3.10+ installed
+* uv package manager ([installation guide](https://github.com/astral-sh/uv))
 * Node.js and npm installed (for the frontend)
-* A free Alpha Vantage API Key
+* A Polygon.io API Key ([get one here](https://polygon.io))
 
 ### **Installation Steps**
 
@@ -73,10 +76,38 @@ The project follows a decoupled, event-driven architecture that ensures scalabil
     ```
 
 2.  **Backend Setup**:
-    * Manually create the AWS resources (S3, SNS, IAM Roles, Lambda functions) as outlined in the architecture.
-    * The `backend/` directory contains the Python code for the Lambda functions.
-    * Create a Lambda deployment package or Layer that includes the `pandas` and `numpy` libraries.
-    * Set the required environment variables in your Lambda functions (`S3_BUCKET_NAME`, `SNS_TOPIC_ARN`, `ALPHA_VANTAGE_API_KEY`).
+    
+    **Local Development:**
+    ```bash
+    cd backend
+    
+    # Install uv if not already installed
+    curl -LsSf https://astral.sh/uv/install.sh | sh
+    
+    # Copy the example .env file and fill in your values
+    cp .env.example .env
+    # Edit .env and add your POLYGON_API_KEY
+    
+    # Install dependencies
+    uv sync
+    
+    # Test locally
+    uv run python local_test.py
+    ```
+    
+    **AWS Deployment:**
+    * Create AWS Secrets Manager secret with your API keys:
+      ```bash
+      aws secretsmanager create-secret \
+        --name financial-pipeline/secrets \
+        --secret-string '{"POLYGON_API_KEY":"your_key_here"}' \
+        --region us-east-1
+      ```
+    * The secret name `financial-pipeline/secrets` is configured in `backend/config.py`
+    * Create the AWS resources (S3, SNS, IAM Roles, Lambda functions)
+    * Grant Lambda functions permission to read from Secrets Manager
+    * Set Lambda environment variables: `S3_BUCKET_NAME`, `SNS_TOPIC_ARN`
+    * Deploy the Lambda code with dependencies (pandas, numpy, boto3, requests)
 
 3.  **Frontend Setup**:
     * Navigate to the frontend directory:
