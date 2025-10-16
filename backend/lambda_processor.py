@@ -36,11 +36,11 @@ IS_LAMBDA = bool(os.environ.get('AWS_EXECUTION_ENV'))
 S3_BUCKET_NAME = CONFIG_S3_BUCKET_NAME
 
 if IS_LAMBDA:
-    # Load from AWS Secrets Manager in Lambda
+    # Production: Load from AWS Secrets Manager
     secrets = get_secret(SECRET_NAME, AWS_REGION)
     POLYGON_API_KEY = secrets.get('POLYGON_API_KEY', '')
 else:
-    # Load from environment variables for local testing
+    # Local: Load from .env file
     POLYGON_API_KEY = os.environ.get('POLYGON_API_KEY', '')
 
 # --- KPI Calculation Functions ---
